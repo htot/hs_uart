@@ -9,8 +9,7 @@ int main(int argc, char** argv)
     
     // FT
     struct timespec Tick;
-    unsigned long RelTime;
-    unsigned long Deadline;
+    unsigned long TimeNow, TimeLast, TimePassed;
     
     changemode(1); //configure keyboard to not wait for enter
      
@@ -51,31 +50,24 @@ int main(int argc, char** argv)
  //   mraa_uart_set_non_blocking(uart,1);
  // FT get tick time
 
+    clock_gettime(CLOCK_REALTIME, &Tick); //retrieve time of realtime clock
+    TimeLast = (unsigned long)Tick.tv_nsec;
+        
     while ( !kbhit()){ //send/resend data continuously
-        clock_gettime(CLOCK_REALTIME, &Tick); //retrieve time of realtime clock
-        RelTime = (unsigned long)Tick.tv_nsec;
-        Deadline = RelTime + (unsigned long)15000000L;// nano seconds
-        toggle_gpio_value(0);
-        written = mraa_uart_write(uart, writebuffer, pos); //write data into the uart buffer non blocking
-        toggle_gpio_value(0);
-        base_reader(uart, readbuffer, &n, Deadline); //read and decode data from the uart buffer before deadline
-        if(n != 1024) { // check if returned bytes = correct
-                int k;
-                mraa_uart_flush(uart);
-		printf("Error: returned %d bytes\n", n);
-                mraa_uart_data_available(uart ,5000);
-                clock_gettime(CLOCK_REALTIME, &Tick);
-                printf("time passed: %i\n", (unsigned long)Tick.tv_nsec -RelTime);
-                k = getNumberOfAvailableBytes(fd); 
-                printf("bytes flushed: %i\n", mraa_uart_read(uart, readbuffer, k));
-
-	} else {
-		if(memcmp(textbuffer, readbuffer, n) != 0) {
-			printf("Error: no match\n");
-			dump_buffer(n, readbuffer);
-		};
-	};
-
+        if(clock_gettime(CLOCK_REALTIME, &Tick) == 0) { //retrieve time of realtime clock
+            TimeNow = (unsigned long)Tick.tv_nsec;
+            TimePassed = 1000000000L + TimeNow - TimeLast;
+            TimePassed %= 1000000000L;
+        };
+        if (TimePassed > 15000000L) {
+            toggle_gpio_value(0);
+            written = mraa_uart_write(uart, writebuffer, pos); //write data into the uart buffer non blocking
+            toggle_gpio_value(0);
+            TimeLast = TimeNow;
+            TimePassed = 0;
+        };
+        base_reader(uart, readbuffer, &n); //read and decode data from the uart buffer before deadline
+        usleep(500);
     }
     changemode(0); //reset keyboard default behaviour
     mraa_uart_stop(uart); // stop uart

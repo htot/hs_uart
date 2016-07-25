@@ -39,7 +39,7 @@ struct _uart {
 
 
 int main(int argc, char** argv);
-void base_reader(mraa_uart_context uart, unsigned char * buffer, int *numBytes, unsigned long DeadLine);
+void base_reader(mraa_uart_context uart, unsigned char * buffer, int *numBytes);
 void changemode(int dir);
 int kbhit (void);
 void init_gpio();
