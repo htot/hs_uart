@@ -8,6 +8,9 @@
 #include <mraa.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#include "crc32c.h"
+#include "crc32intelc.h"
+#include <endian.h>
 
 // FT need to link with librt (-lrt)
 #include <time.h>

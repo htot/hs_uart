@@ -2,14 +2,14 @@
 
 static char state = WAIT_SOM;
 static unsigned long STX_time;
+static int bbpos = 0;
 void base_reader(mraa_uart_context uart, unsigned char * buffer, int *numBytes) { 
-    int i, n, k;
+    int j0, j1, i, n, k;
     
     unsigned char base64buffer[3072];
     unsigned char readbuffer[3072];
-    int bbpos = 0;
     struct _uart * u = uart;
-
+    uint32_t CRC32C, * p_crc, R_CRC32C;
 
     
     struct timespec Tick;
@@ -58,10 +58,25 @@ void base_reader(mraa_uart_context uart, unsigned char * buffer, int *numBytes) 
                                             if (TimePassed > 15000000L) {
                                                 state = WAIT_SOM;
                                             } else {
-						state = DECODED;
                                                 toggle_gpio_value(1);
 						n = base64_decode(buffer, base64buffer, bbpos);
-                                                toggle_gpio_value(1);
+                                                if(n == 1024) {
+                                                    p_crc = (uint32_t *)(buffer + 1020);
+                                                    R_CRC32C = le32toh(*p_crc);		// read in little endian
+                                                    *p_crc = 0;				// zero out
+                                                    CRC32C = crc32cIntelC (crc32cInit(), buffer, 1024);
+                                                    CRC32C = crc32cFinish(CRC32C);
+                                                    if(CRC32C == R_CRC32C) {
+                                                        toggle_gpio_value(1);
+                                                        state = DECODED;
+                                                    } else {
+                                                        state = WAIT_SOM;
+                                                        printf("Received CRC32C = 0x%08x, Decoded  CRC32C = 0x%08x\n", R_CRC32C ,CRC32C);
+                                                    };
+                                                } else {
+                                                    state = WAIT_SOM;
+                                                    // printf("%i bytes received\n", n);
+                                                };
                                             };
                                             break;
 					default:

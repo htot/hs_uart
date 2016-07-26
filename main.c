@@ -6,6 +6,8 @@ int main(int argc, char** argv)
     unsigned char writebuffer[2060];
     unsigned char textbuffer[2048];
     unsigned char readbuffer[3072];
+    uint32_t CRC32C, * p_crc;
+
     
     // FT
     struct timespec Tick;
@@ -17,7 +19,18 @@ int main(int argc, char** argv)
     //fill textbuffer with 0/0xff repeated
     for(i=0;i<sizeof(textbuffer);i++){
         textbuffer[i] = (char)i;
-    }
+    };
+    // put 4 zero at the last 1024 bytes
+    p_crc = (uint32_t *)(textbuffer + 1020);
+    *p_crc = 0;
+    
+    // calculate the CRC
+    CRC32C = crc32cIntelC (crc32cInit(), textbuffer, 1024);
+    CRC32C = crc32cFinish(CRC32C);
+    printf("Buffer CRC32C = 0x%08x\n", CRC32C);
+    // put the CRC at the end of the buffer
+    *p_crc = htole32(CRC32C);	// write in little endian
+    
     unsigned int pos = 0; //message sent
     writebuffer[pos++] = 0xFF;
     writebuffer[pos++] = 0xFF;
