@@ -54,3 +54,5 @@ void dump_buffer(unsigned n, const unsigned char* buf);
 int getNumberOfAvailableBytes(int fd);
 int set_interface_attribs (int fd, int speed, int parity, int disableFlowControl);
 void set_blocking (int fd, int should_block);
+int detect_rt(void);
+int detect_rt(void);

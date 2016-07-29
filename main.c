@@ -7,12 +7,9 @@ int main(int argc, char** argv)
     unsigned char textbuffer[2048];
     unsigned char readbuffer[3072];
     uint32_t CRC32C, * p_crc;
-
-    
-    // FT
     struct timespec Tick;
     unsigned long TimeNow, TimeLast, TimePassed;
-    
+
     changemode(1); //configure keyboard to not wait for enter
      
     
@@ -55,17 +52,21 @@ int main(int argc, char** argv)
   // B3500000
   // B4000000 crashes edison!
 
-  set_interface_attribs(fd, B2000000, (PARENB | PARODD), 1); //set serial port to 8 bits, 2Mb/s, parity ODD, 1 stop bit
-  set_blocking(fd, 0); //set serial port non-blocking
+    set_interface_attribs(fd, B2000000, (PARENB | PARODD), 1); //set serial port to 8 bits, 2Mb/s, parity ODD, 1 stop bit
+    set_blocking(fd, 0); //set serial port non-blocking
 
-    
- //   mraa_uart_set_baudrate(uart,2000000);
- //   mraa_uart_set_non_blocking(uart,1);
- // FT get tick time
-
-    clock_gettime(CLOCK_REALTIME, &Tick); //retrieve time of realtime clock
+    if(clock_gettime(CLOCK_REALTIME, &Tick) != 0) { //retrieve time of realtime clock
+        perror("We didn't get a time\n");
+        exit(-1);
+    };
     TimeLast = (unsigned long)Tick.tv_nsec;
-        
+    TimePassed = 0;
+
+    if(detect_rt()) {
+        printf("preempt_rt detected\n");
+        set_rt(); // on preempt_rt we need to set priority and lock memory
+    };
+       
     while ( !kbhit()){ //send/resend data continuously
         if(clock_gettime(CLOCK_REALTIME, &Tick) == 0) { //retrieve time of realtime clock
             TimeNow = (unsigned long)Tick.tv_nsec;
@@ -80,7 +81,7 @@ int main(int argc, char** argv)
             TimePassed = 0;
         };
         base_reader(uart, readbuffer, &n); //read and decode data from the uart buffer before deadline
-        usleep(500);
+        usleep(100);
     }
     changemode(0); //reset keyboard default behaviour
     mraa_uart_stop(uart); // stop uart
