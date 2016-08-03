@@ -2,14 +2,15 @@
 
 static char state = WAIT_SOM;
 static unsigned long STX_time;
+static unsigned char base64buffer[3072];
 static int bbpos = 0;
-uint32_t base_reader(const mraa_uart_context uart, unsigned char * buffer, uint32_t *MessageNumber) {
+
+int32_t base_reader(const mraa_uart_context uart, unsigned char * buffer, uint32_t *MessageNumber) {
     int j, i, k;
     
-    unsigned char base64buffer[3072];
     unsigned char readbuffer[3072];
     struct _uart * u = uart;
-    uint32_t numBytes;
+    int32_t numBytes = -1;
 
     
     struct timespec Tick;
@@ -17,7 +18,7 @@ uint32_t base_reader(const mraa_uart_context uart, unsigned char * buffer, uint3
     
     if((k = getNumberOfAvailableBytes(u->fd)) > sizeof(readbuffer)) k = sizeof(readbuffer); 
     if(k>0) {
-        if(clock_gettime(CLOCK_REALTIME, &Tick) != 0) return; // if we get no clock abort
+        if(clock_gettime(CLOCK_REALTIME, &Tick) != 0) return -1; // if we get no clock abort
         mraa_uart_read(uart, readbuffer, k);
         RelTime = (unsigned long)Tick.tv_nsec;
 	// check the new bytes
@@ -35,6 +36,7 @@ uint32_t base_reader(const mraa_uart_context uart, unsigned char * buffer, uint3
                                     // we found STX 
                                     STX_time = RelTime;
                                     state = READ;
+                                    TimeEvent(STX_REC);
                                     toggle_gpio_value(1);
                                     bbpos = 0;
 				} else if(readbuffer[i] != 0xFF) {
@@ -57,14 +59,16 @@ uint32_t base_reader(const mraa_uart_context uart, unsigned char * buffer, uint3
                                             TimePassed = 1000000000L + RelTime - STX_time;
                                             TimePassed %= 1000000000L;
                                             if (TimePassed > 15000000L) {
+                                                TimeEvent(TIMEOUT);
                                                 state = WAIT_SOM;
                                                 break;
 					    };
+					    TimeEvent(ETX_REC);
 					    if((numBytes = UnframeReceiveBuffer(buffer, MessageNumber, base64buffer, bbpos)) < 0) {
 						state = WAIT_SOM;
 					    } else {
                                                 toggle_gpio_value(1);
-                                                state = DECODED;
+                                                state = WAIT_SOM;     // we have numBytes but can start decoding next message
                                             };
                                             break;
 					default:
@@ -85,15 +89,10 @@ uint32_t base_reader(const mraa_uart_context uart, unsigned char * buffer, uint3
                                             break;
 				};
 				break;
-			default:	// should only be DECODED
+			default:	// should never be here
 				break;
 		};
 	};
     };
-    if(state != DECODED) {
-        return 0;
-    } else {
-        state = WAIT_SOM;
-        return numBytes;
-    };
+    return numBytes;                  // numBytes is always -1 unless data is available in buffer
 }

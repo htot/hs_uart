@@ -39,7 +39,10 @@ int UnframeReceiveBuffer(char * DataBuffer, uint32_t * MessageNumber, const char
     p_uint32 = (uint32_t *)tempBuffer;
     *MessageNumber = le32toh(*p_uint32);         // from LE
     Len -= 3 * sizeof(uint32_t);                // data length without
-    if(Len != le32toh(*(p_uint32 + 1))) return -1;  // we lost data from the frame
+    if(Len != le32toh(*(p_uint32 + 1))) {
+        TimeEvent(OVERRUNS);
+        return -1;  // we lost data from the frame
+    };
     p_uint32 = (uint32_t *)(tempBuffer + Len + 2 * sizeof(uint32_t));
     R_CRC32C = le32toh(*p_uint32);              // read CRC32C in little endian
     *p_uint32 = 0;                              // zero out

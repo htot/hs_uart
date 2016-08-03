@@ -79,17 +79,19 @@ int main(int argc, char** argv)
             if(read(TimerFd, &TimerValue, sizeof(uint64_t)) != sizeof(uint64_t)) handle_error("read timer");
             toggle_gpio_value(0);
             MessageNumber++;
+            StartTimer();
             TransmitSize = FrameTransmitBuffer(writebuffer, MessageNumber, textbuffer, DATA_BUFFER);
             if(mraa_uart_write(uart, writebuffer, TransmitSize) != TransmitSize) handle_error("mraa_uart_write");; //write data into the uart buffer non blocking
+            TimeEvent(TRANSMIT);
             toggle_gpio_value(0);
             FD_SET(TimerFd, &active_rfds);
         };
         if(FD_ISSET(UartFd, &read_rfds)) {                         // data is in the Uart
             if(base_reader(uart, readbuffer, &ReceiveMessageNumber) >= 0) {
                 if(ReceiveMessageNumber != PreviousReceiveMessageNumber + 1) {
-                    printf("Missed\n");
-                    PreviousReceiveMessageNumber = ReceiveMessageNumber;
+                    TimeEvent(MISSED);
                 };
+                PreviousReceiveMessageNumber = ReceiveMessageNumber;
             };
             FD_SET(UartFd, &active_rfds);
         };
@@ -97,4 +99,5 @@ int main(int argc, char** argv)
     changemode(0);                                            // reset keyboard default behaviour
     mraa_uart_stop(uart);                                     // stop uart
     mraa_deinit();                                            // stop mraa
+    PrintEvents();
 }
