@@ -1,39 +1,27 @@
 #include "hs_serial.h"
 
+#define handle_error(msg) do { perror(msg); exit(EXIT_FAILURE); } while (0)
+
 int main(int argc, char** argv)
 {
-    int i, j, written, numofbytes, n, fd;
-    unsigned char writebuffer[2060];
-    unsigned char textbuffer[2048];
+    int i, j, written, numofbytes, n, UartFd, TimerFd, KbHit, MaxFd;
+    int TransmitSize, MessageNumber = 0;
+    int ReceiveMessageNumber, PreviousReceiveMessageNumber = 0;
+    unsigned char writebuffer[MAX_BUFFER];
+    unsigned char textbuffer[DATA_BUFFER];
     unsigned char readbuffer[3072];
-    uint32_t CRC32C, * p_crc;
     struct timespec Tick;
     unsigned long TimeNow, TimeLast, TimePassed;
+    struct itimerspec TimerSettings;
+    uint64_t TimerValue;
+    fd_set active_rfds, read_rfds;
 
     changemode(1); //configure keyboard to not wait for enter
      
-    
-    //fill textbuffer with 0/0xff repeated
-    for(i=0;i<sizeof(textbuffer);i++){
+    //fill textbuffer with random
+    for(i=0;i<DATA_BUFFER;i++){
         textbuffer[i] = (char)i;
     };
-    // put 4 zero at the last 1024 bytes
-    p_crc = (uint32_t *)(textbuffer + 1020);
-    *p_crc = 0;
-    
-    // calculate the CRC
-    CRC32C = crc32cIntelC (crc32cInit(), textbuffer, 1024);
-    CRC32C = crc32cFinish(CRC32C);
-    printf("Buffer CRC32C = 0x%08x\n", CRC32C);
-    // put the CRC at the end of the buffer
-    *p_crc = htole32(CRC32C);	// write in little endian
-    
-    unsigned int pos = 0; //message sent
-    writebuffer[pos++] = 0xFF;
-    writebuffer[pos++] = 0xFF;
-    writebuffer[pos++] = 0x02;
-    pos += base64_encode(&writebuffer[pos], textbuffer, 1024);
-    writebuffer[pos++] = 0x03;
 
     mraa_init(); //initialize mraa
     init_gpio(); // initialize gpio pins
@@ -42,7 +30,7 @@ int main(int argc, char** argv)
     mraa_uart_flush(uart);
     
     struct _uart * u = uart;
-    fd = u->fd;
+    UartFd = u->fd;
   // B1000000 
   // B1152000
   // B1500000
@@ -52,40 +40,64 @@ int main(int argc, char** argv)
   // B3500000
   // B4000000 crashes edison!
 
-    set_interface_attribs(fd, B2000000, (PARENB | PARODD), 1); //set serial port to 8 bits, 2Mb/s, parity ODD, 1 stop bit
-    set_blocking(fd, 0); //set serial port non-blocking
+    set_interface_attribs(UartFd, B2000000, (PARENB | PARODD), 1);  //set serial port to 8 bits, 2Mb/s, parity ODD, 1 stop bit
+    set_blocking(UartFd, 0);                                        //set serial port non-blocking
 
-    if(clock_gettime(CLOCK_REALTIME, &Tick) != 0) { //retrieve time of realtime clock
-        perror("We didn't get a time\n");
-        exit(-1);
-    };
-    TimeLast = (unsigned long)Tick.tv_nsec;
-    TimePassed = 0;
+    // Create a CLOCK_REALTIME relative timer with initial expiration 1 sec. and interval 15msec. */
+    TimerSettings.it_value.tv_sec = 1;
+    TimerSettings.it_value.tv_nsec = 0;
+    TimerSettings.it_interval.tv_sec = 0;
+    TimerSettings.it_interval.tv_nsec = 15000000L;
+
+    if((TimerFd = timerfd_create(CLOCK_REALTIME, 0)) == -1) handle_error("timerfd_create");
+    if(timerfd_settime(TimerFd, 0, &TimerSettings, NULL) == -1) handle_error("timerfd_settime");
+
+    // find highest fd
+    FD_ZERO(&active_rfds);                                       // clears the set
+    FD_SET(STDIN_FILENO, &active_rfds);                          // add stdin to the set
+    FD_SET(TimerFd, &active_rfds);                               // add timer to the set
+    FD_SET(UartFd, &active_rfds);                                // add uart to the set
+    MaxFd = 0;
+    if(STDIN_FILENO > MaxFd) MaxFd = STDIN_FILENO;
+    if(TimerFd > MaxFd) MaxFd = TimerFd;
+    if(UartFd > MaxFd) MaxFd = UartFd;
 
     if(detect_rt()) {
         printf("preempt_rt detected\n");
-        set_rt(); // on preempt_rt we need to set priority and lock memory
+        set_rt();                                             // on preempt_rt we need to set priority and lock memory
     };
-       
-    while ( !kbhit()){ //send/resend data continuously
-        if(clock_gettime(CLOCK_REALTIME, &Tick) == 0) { //retrieve time of realtime clock
-            TimeNow = (unsigned long)Tick.tv_nsec;
-            TimePassed = 1000000000L + TimeNow - TimeLast;
-            TimePassed %= 1000000000L;
+
+    KbHit = 0;
+    while ( !KbHit){                                          // send/receive data continuously until kbhit
+        read_rfds = active_rfds;
+        if(select(MaxFd+1, &read_rfds, NULL, NULL, NULL) < 0) handle_error("select"); // wait indefinetely
+        if(FD_ISSET(STDIN_FILENO, &read_rfds)) {
+            KbHit = 1;                                        // the kb has been pressed
+            FD_SET(STDIN_FILENO, &active_rfds);
         };
-        if (TimePassed > 15000000L) {
+        if(FD_ISSET(TimerFd, &read_rfds)) {                        // a time tick happened
+            if(read(TimerFd, &TimerValue, sizeof(uint64_t)) != sizeof(uint64_t)) handle_error("read timer");
             toggle_gpio_value(0);
-            written = mraa_uart_write(uart, writebuffer, pos); //write data into the uart buffer non blocking
+            MessageNumber++;
+            StartTimer();
+            TransmitSize = FrameTransmitBuffer(writebuffer, MessageNumber, textbuffer, DATA_BUFFER);
+            if(mraa_uart_write(uart, writebuffer, TransmitSize) != TransmitSize) handle_error("mraa_uart_write");; //write data into the uart buffer non blocking
+            TimeEvent(TRANSMIT);
             toggle_gpio_value(0);
-            TimeLast = TimeNow;
-            TimePassed = 0;
+            FD_SET(TimerFd, &active_rfds);
         };
-        base_reader(uart, readbuffer, &n); //read and decode data from the uart buffer before deadline
-        usleep(100);
+        if(FD_ISSET(UartFd, &read_rfds)) {                         // data is in the Uart
+            if(base_reader(uart, readbuffer, &ReceiveMessageNumber) >= 0) {
+                if(ReceiveMessageNumber != PreviousReceiveMessageNumber + 1) {
+                    TimeEvent(MISSED);
+                };
+                PreviousReceiveMessageNumber = ReceiveMessageNumber;
+            };
+            FD_SET(UartFd, &active_rfds);
+        };
     }
-    changemode(0); //reset keyboard default behaviour
-    mraa_uart_stop(uart); // stop uart
-    mraa_deinit(); //stop mraa
-//    	close(fd); 
-    
+    changemode(0);                                            // reset keyboard default behaviour
+    mraa_uart_stop(uart);                                     // stop uart
+    mraa_deinit();                                            // stop mraa
+    PrintEvents();
 }

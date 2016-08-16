@@ -25,6 +25,17 @@
 #define TEST_GPIO 2
 #define TEST_MODE 0
 #define NUMBER_OF_GPIO 2
+#define MAX_BUFFER 4048
+#define DATA_BUFFER 1024
+
+#define NO_CLOCK 0
+#define TRANSMIT 1
+#define STX_REC  2
+#define ETX_REC  3
+#define MISSED   4
+#define TIMEOUT  5
+#define OVERRUNS 6
+
 
 typedef struct _wtf mraa_adv_func_t;
 
@@ -42,7 +53,7 @@ struct _uart {
 
 
 int main(int argc, char** argv);
-void base_reader(mraa_uart_context uart, unsigned char * buffer, int *numBytes);
+int32_t base_reader(const mraa_uart_context uart, unsigned char * buffer, uint32_t *MessageNumber);
 void changemode(int dir);
 int kbhit (void);
 void init_gpio();
@@ -56,3 +67,8 @@ int set_interface_attribs (int fd, int speed, int parity, int disableFlowControl
 void set_blocking (int fd, int should_block);
 int detect_rt(void);
 int detect_rt(void);
+int FrameTransmitBuffer(char * TransmitBuffer, const uint32_t MessageNumber, const char * DataBuffer, const uint32_t n);
+int UnframeReceiveBuffer(char * DataBuffer, uint32_t * MessageNumber, const char * ReceiveBuffer, const uint32_t n);
+void StartTimer(void);
+void TimeEvent(char Event);
+void PrintEvents(void);
