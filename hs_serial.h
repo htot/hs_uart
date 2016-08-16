@@ -63,7 +63,7 @@ int gpio_values[NUMBER_OF_GPIO];
 mraa_result_t mraa_uart_set_non_blocking(mraa_uart_context dev, mraa_boolean_t nonblock);
 void dump_buffer(unsigned n, const unsigned char* buf);
 int getNumberOfAvailableBytes(int fd);
-int set_interface_attribs (int fd, int speed, int parity, int disableFlowControl);
+int set_interface_attribs (int fd, int speed, tcflag_t parity, int disableFlowControl);
 void set_blocking (int fd, int should_block);
 int detect_rt(void);
 int detect_rt(void);
