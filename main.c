@@ -4,7 +4,7 @@
 
 int main(int argc, char** argv)
 {
-    int i, j, written, numofbytes, n, UartFd, TimerFd, KbHit, MaxFd;
+    int c, i, j, written, numofbytes, n, UartFd, TimerFd, KbHit, MaxFd;
     int TransmitSize, MessageNumber = 0;
     int ReceiveMessageNumber, PreviousReceiveMessageNumber = 0;
     unsigned char writebuffer[MAX_BUFFER];
@@ -15,7 +15,25 @@ int main(int argc, char** argv)
     struct itimerspec TimerSettings;
     uint64_t TimerValue;
     fd_set active_rfds, read_rfds;
+    tcflag_t parity = (PARENB | PARODD);
 
+    
+    
+     while((c = getopt (argc, argv, "e?:")) != -1) {
+        switch (c) {
+            case 'e':
+                parity = PARENB;
+                printf("Parity set to even\n");
+                break;
+            case '?':
+                printf("Usage: %s [-e]\n", argv[0]);
+                printf("  -e : switch to parity even\n");
+                return;
+            default:
+                fprintf(stderr, "Usage: %s [-e]\n", argv[0]);
+                exit(EXIT_FAILURE);
+        }
+    }
     changemode(1); //configure keyboard to not wait for enter
      
     //fill textbuffer with random
@@ -40,7 +58,7 @@ int main(int argc, char** argv)
   // B3500000
   // B4000000 crashes edison!
 
-    set_interface_attribs(UartFd, B2000000, (PARENB | PARODD), 1);  //set serial port to 8 bits, 2Mb/s, parity ODD, 1 stop bit
+    set_interface_attribs(UartFd, B2000000, parity , 1);  //set serial port to 8 bits, 2Mb/s, parity ODD, 1 stop bit
     set_blocking(UartFd, 0);                                        //set serial port non-blocking
 
     // Create a CLOCK_REALTIME relative timer with initial expiration 1 sec. and interval 15msec. */

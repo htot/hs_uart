@@ -52,6 +52,7 @@ int32_t base_reader(const mraa_uart_context uart, unsigned char * buffer, uint32
                                             break;
 					case 0x00:
 						// looks like we found an error, go back to wait for PREAMBLE
+                                                printf ("PE\n");
                                                 state = WAIT_SOM;
 						break;
 					case 0x03:
