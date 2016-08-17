@@ -72,3 +72,4 @@ int UnframeReceiveBuffer(char * DataBuffer, uint32_t * MessageNumber, const char
 void StartTimer(void);
 void TimeEvent(char Event);
 void PrintEvents(void);
+void exitmode(void);
