@@ -30,3 +30,7 @@ int kbhit (void)
   return FD_ISSET(STDIN_FILENO, &rdfs);
  
 }
+
+void exitmode(void){
+    changemode(0);
+}

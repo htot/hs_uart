@@ -4,7 +4,7 @@
 
 int main(int argc, char** argv)
 {
-    int c, i, j, written, numofbytes, n, UartFd, TimerFd, KbHit, MaxFd;
+    int c, i, j, stats=0, written, numofbytes, n, UartFd, TimerFd, KbHit, MaxFd;
     int TransmitSize, MessageNumber = 0;
     int ReceiveMessageNumber, PreviousReceiveMessageNumber = 0;
     unsigned char writebuffer[MAX_BUFFER];
@@ -17,23 +17,40 @@ int main(int argc, char** argv)
     fd_set active_rfds, read_rfds;
     tcflag_t parity = (PARENB | PARODD);
 
-    
-    
-     while((c = getopt (argc, argv, "e?:")) != -1) {
+     long msecs;
+     msecs=15;
+     while((c = getopt (argc, argv, "e?t:s")) != -1) {
         switch (c) {
             case 'e':
                 parity = PARENB;
                 printf("Parity set to even\n");
                 break;
+            case 't':
+                msecs=-1;
+                msecs = atoi(optarg);
+                printf("set timer to %i ms\n", msecs);
+                break;
             case '?':
-                printf("Usage: %s [-e]\n", argv[0]);
-                printf("  -e : switch to parity even\n");
+                printf("Usage: %s [-e] [-t nnnn] [-s]\n", argv[0]);
+                printf("  -e      : Switch to parity even\n");
+                printf("  -t nnnn : msec between transmits\n");
+                printf("  -s      : Print statistcs when done\n");
+                printf("\nPress any key to terminate\n");
                 return;
+            case 's':
+                stats = 1;
+                printf("Print statistcs when done\n");
+                break;
             default:
                 fprintf(stderr, "Usage: %s [-e]\n", argv[0]);
                 exit(EXIT_FAILURE);
         }
     }
+    if (msecs == -1) {
+        fprintf(stderr, "Usage: %s [-e] [-t nnnn] [-s]\n");
+        exit(EXIT_FAILURE);
+    }
+    atexit(exitmode);
     changemode(1); //configure keyboard to not wait for enter
      
     //fill textbuffer with random
@@ -64,8 +81,8 @@ int main(int argc, char** argv)
     // Create a CLOCK_REALTIME relative timer with initial expiration 1 sec. and interval 15msec. */
     TimerSettings.it_value.tv_sec = 1;
     TimerSettings.it_value.tv_nsec = 0;
-    TimerSettings.it_interval.tv_sec = 0;
-    TimerSettings.it_interval.tv_nsec = 15000000L;
+    TimerSettings.it_interval.tv_sec = msecs / 1000;
+    TimerSettings.it_interval.tv_nsec = (msecs % 1000) * 1000000;
 
     if((TimerFd = timerfd_create(CLOCK_REALTIME, 0)) == -1) handle_error("timerfd_create");
     if(timerfd_settime(TimerFd, 0, &TimerSettings, NULL) == -1) handle_error("timerfd_settime");
@@ -117,5 +134,5 @@ int main(int argc, char** argv)
     changemode(0);                                            // reset keyboard default behaviour
     mraa_uart_stop(uart);                                     // stop uart
     mraa_deinit();                                            // stop mraa
-    PrintEvents();
+    if(stats == 1) PrintEvents();
 }
