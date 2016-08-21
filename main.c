@@ -2,6 +2,10 @@
 
 #define handle_error(msg) do { perror(msg); exit(EXIT_FAILURE); } while (0)
 
+int DebugFlag = 0;
+long msecs = 15;
+
+
 int main(int argc, char** argv)
 {
     int c, i, j, stats=0, written, numofbytes, n, UartFd, TimerFd, KbHit, MaxFd;
@@ -17,10 +21,12 @@ int main(int argc, char** argv)
     fd_set active_rfds, read_rfds;
     tcflag_t parity = (PARENB | PARODD);
 
-     long msecs;
-     msecs=15;
-     while((c = getopt (argc, argv, "e?t:s")) != -1) {
+     while((c = getopt (argc, argv, "de?t:s")) != -1) {
         switch (c) {
+          case 'd':
+              DebugFlag = 1;
+              printf("Debug on\n");
+              break;
             case 'e':
                 parity = PARENB;
                 printf("Parity set to even\n");
@@ -31,7 +37,8 @@ int main(int argc, char** argv)
                 printf("set timer to %i ms\n", msecs);
                 break;
             case '?':
-                printf("Usage: %s [-e] [-t nnnn] [-s]\n", argv[0]);
+                printf("Usage: %s [-d] [-e] [-t nnnn] [-s]\n", argv[0]);
+                printf("  -d      : Print debug messages to screen, may require -t 1000 on slow terminals\n");
                 printf("  -e      : Switch to parity even\n");
                 printf("  -t nnnn : msec between transmits\n");
                 printf("  -s      : Print statistcs when done\n");
@@ -47,7 +54,7 @@ int main(int argc, char** argv)
         }
     }
     if (msecs == -1) {
-        fprintf(stderr, "Usage: %s [-e] [-t nnnn] [-s]\n");
+        fprintf(stderr, "Usage: %s [-d] [-e] [-t nnnn] [-s]\n");
         exit(EXIT_FAILURE);
     }
     atexit(exitmode);

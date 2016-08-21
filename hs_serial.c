@@ -32,7 +32,7 @@ set_interface_attribs (int fd, int speed, tcflag_t parity, int disableFlowContro
 
         tty.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
         tty.c_iflag &= ~IGNPAR;         // do not ignore parity and framing errors
-        tty.c_iflag &= ~PARMRK;         // parity or framing error char replaced with \0
+        tty.c_iflag |= PARMRK;         // parity or framing error char replaced with \0
         tty.c_iflag |= INPCK;           // enable parity checking
 
         tty.c_cflag |= (CLOCAL | CREAD);// ignore modem controls,
