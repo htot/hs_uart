@@ -21,7 +21,7 @@ int main(int argc, char** argv)
     fd_set active_rfds, read_rfds;
     tcflag_t parity = (PARENB | PARODD);
 
-     while((c = getopt (argc, argv, "de?t:s")) != -1) {
+     while((c = getopt (argc, argv, "den?t:s")) != -1) {
         switch (c) {
           case 'd':
               DebugFlag = 1;
@@ -31,15 +31,20 @@ int main(int argc, char** argv)
                 parity = PARENB;
                 printf("Parity set to even\n");
                 break;
+            case 'n':
+                parity = 0;
+                printf("Parity set to none\n");
+                break;
             case 't':
                 msecs=-1;
                 msecs = atoi(optarg);
                 printf("set timer to %i ms\n", msecs);
                 break;
             case '?':
-                printf("Usage: %s [-d] [-e] [-t nnnn] [-s]\n", argv[0]);
+                printf("Usage: %s [-d] [-e] [-n] [-t nnnn] [-s]\n", argv[0]);
                 printf("  -d      : Print debug messages to screen, may require -t 1000 on slow terminals\n");
                 printf("  -e      : Switch to parity even\n");
+                printf("  -n      : Switch to parity none\n");
                 printf("  -t nnnn : msec between transmits\n");
                 printf("  -s      : Print statistcs when done\n");
                 printf("\nPress any key to terminate\n");
@@ -49,12 +54,12 @@ int main(int argc, char** argv)
                 printf("Print statistcs when done\n");
                 break;
             default:
-                fprintf(stderr, "Usage: %s [-e]\n", argv[0]);
+                fprintf(stderr, "Usage: %s [-d] [-e] [-n] [-t nnnn] [-s]\n", argv[0]);
                 exit(EXIT_FAILURE);
         }
     }
     if (msecs == -1) {
-        fprintf(stderr, "Usage: %s [-d] [-e] [-t nnnn] [-s]\n");
+        fprintf(stderr, "Usage: %s [-d] [-e] [-n] [-t nnnn] [-s]\n", argv[0]);
         exit(EXIT_FAILURE);
     }
     atexit(exitmode);
@@ -69,7 +74,6 @@ int main(int argc, char** argv)
     init_gpio(); // initialize gpio pins
     mraa_uart_context uart;
     uart = mraa_uart_init(0);
-    mraa_uart_flush(uart);
     
     struct _uart * u = uart;
     UartFd = u->fd;
@@ -84,6 +88,7 @@ int main(int argc, char** argv)
 
     set_interface_attribs(UartFd, B2000000, parity , 1);  //set serial port to 8 bits, 2Mb/s, parity ODD, 1 stop bit
     set_blocking(UartFd, 0);                                        //set serial port non-blocking
+    mraa_uart_flush(uart);
 
     // Create a CLOCK_REALTIME relative timer with initial expiration 1 sec. and interval 15msec. */
     TimerSettings.it_value.tv_sec = 1;
