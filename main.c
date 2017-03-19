@@ -8,7 +8,7 @@ long msecs = 15;
 
 int main(int argc, char** argv)
 {
-    int c, i, j, stats=0, written, numofbytes, n, UartFd, TimerFd, KbHit, MaxFd;
+    int c, i, j, stats=0, written, numofbytes, n, UartFd, TimerFd, KbHit, MaxFd, FlowControl = 0;
     int TransmitSize, MessageNumber = 0;
     int ReceiveMessageNumber, PreviousReceiveMessageNumber = 0;
     unsigned char writebuffer[MAX_BUFFER];
@@ -21,7 +21,7 @@ int main(int argc, char** argv)
     fd_set active_rfds, read_rfds;
     tcflag_t parity = (PARENB | PARODD);
 
-     while((c = getopt (argc, argv, "den?t:s")) != -1) {
+     while((c = getopt (argc, argv, "defn?t:s")) != -1) {
         switch (c) {
           case 'd':
               DebugFlag = 1;
@@ -31,6 +31,10 @@ int main(int argc, char** argv)
                 parity = PARENB;
                 printf("Parity set to even\n");
                 break;
+            case 'f':
+                FlowControl = 1;
+                printf("RTS/CTS flow control OFF\n");
+            break;
             case 'n':
                 parity = 0;
                 printf("Parity set to none\n");
@@ -44,6 +48,7 @@ int main(int argc, char** argv)
                 printf("Usage: %s [-d] [-e] [-n] [-t nnnn] [-s]\n", argv[0]);
                 printf("  -d      : Print debug messages to screen, may require -t 1000 on slow terminals\n");
                 printf("  -e      : Switch to parity even\n");
+                printf("  -f      : Turn off RTS/CTS flow control\n");
                 printf("  -n      : Switch to parity none\n");
                 printf("  -t nnnn : msec between transmits\n");
                 printf("  -s      : Print statistcs when done\n");
@@ -86,7 +91,7 @@ int main(int argc, char** argv)
   // B3500000
   // B4000000 crashes edison!
 
-    set_interface_attribs(UartFd, B2000000, parity , 1);  //set serial port to 8 bits, 2Mb/s, parity ODD, 1 stop bit
+    set_interface_attribs(UartFd, B2000000, parity , FlowControl);  //set serial port to 8 bits, 2Mb/s, parity ODD, 1 stop bit
     set_blocking(UartFd, 0);                                        //set serial port non-blocking
     mraa_uart_flush(uart);
 
