@@ -9,6 +9,7 @@ long msecs = 15;
 int main(int argc, char** argv)
 {
     int c, i, j, stats=0, written, numofbytes, n, UartFd, TimerFd, KbHit, MaxFd, FlowControl = 0;
+    int BufferSize = 1024;
     int TransmitSize, MessageNumber = 0;
     int ReceiveMessageNumber, PreviousReceiveMessageNumber = 0;
     unsigned char writebuffer[MAX_BUFFER];
@@ -21,8 +22,13 @@ int main(int argc, char** argv)
     fd_set active_rfds, read_rfds;
     tcflag_t parity = (PARENB | PARODD);
 
-     while((c = getopt (argc, argv, "defn?t:s")) != -1) {
+     while((c = getopt (argc, argv, "b:defn?t:s")) != -1) {
         switch (c) {
+          case 'b':
+              BufferSize = -1;
+              BufferSize = atoi(optarg);
+              printf("set message size to %i\n", BufferSize);
+              break;
           case 'd':
               DebugFlag = 1;
               printf("Debug on\n");
@@ -46,6 +52,7 @@ int main(int argc, char** argv)
                 break;
             case '?':
                 printf("Usage: %s [-d] [-e] [-n] [-t nnnn] [-s]\n", argv[0]);
+                printf("  -b nnnn : set buffer size (default = 1024)\n");
                 printf("  -d      : Print debug messages to screen, may require -t 1000 on slow terminals\n");
                 printf("  -e      : Switch to parity even\n");
                 printf("  -f      : Turn off RTS/CTS flow control\n");
@@ -74,6 +81,7 @@ int main(int argc, char** argv)
     for(i=0;i<DATA_BUFFER;i++){
         textbuffer[i] = (char)i;
     };
+    if (DebugFlag) printf("frame size is %i\n", FrameTransmitBuffer(writebuffer, MessageNumber, textbuffer, BufferSize));
 
     mraa_init(); //initialize mraa
     init_gpio(); // initialize gpio pins
@@ -132,7 +140,7 @@ int main(int argc, char** argv)
             toggle_gpio_value(0);
             MessageNumber++;
             StartTimer();
-            TransmitSize = FrameTransmitBuffer(writebuffer, MessageNumber, textbuffer, DATA_BUFFER);
+            TransmitSize = FrameTransmitBuffer(writebuffer, MessageNumber, textbuffer, BufferSize);
             if(mraa_uart_write(uart, writebuffer, TransmitSize) != TransmitSize) handle_error("mraa_uart_write");; //write data into the uart buffer non blocking
             TimeEvent(TRANSMIT);
             toggle_gpio_value(0);

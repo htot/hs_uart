@@ -48,7 +48,9 @@ set_interface_attribs (int fd, int speed, tcflag_t parity, int disableFlowContro
           tty.c_cflag &= ~CRTSCTS; // no rts/cts
         else
           tty.c_cflag |= CRTSCTS; // enable rts/cts
-
+//          mraa_intel_edison_pinmode_change(128, 1); // CTS
+//          mraa_intel_edison_pinmode_change(129, 1); // RTS
+//          mraa_uart_set_flowcontrol()
         if (tcsetattr (fd, TCSANOW, &tty) != 0)
         {
                 printf ("error %d from tcsetattr", errno);
