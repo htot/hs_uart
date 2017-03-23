@@ -77,7 +77,7 @@ int32_t base_reader(const mraa_uart_context uart, unsigned char * buffer, uint32
                             };
                             TimeEvent(ETX_REC);
                             if((numBytes = UnframeReceiveBuffer(buffer, MessageNumber, base64buffer, bbpos)) < 0) {
-                                if (DebugFlag) dump_buffer(bbpos, base64buffer);
+//                                if (DebugFlag) dump_buffer(bbpos, base64buffer);
                                 state = WAIT_SOM;
                             } else {
                                 toggle_gpio_value(1);

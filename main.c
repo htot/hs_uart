@@ -142,6 +142,7 @@ int main(int argc, char** argv)
             if(base_reader(uart, readbuffer, &ReceiveMessageNumber) >= 0) {
                 if(ReceiveMessageNumber != PreviousReceiveMessageNumber + 1) {
                     TimeEvent(MISSED);
+                    if (DebugFlag) printf("Received message %i expected %i\n", ReceiveMessageNumber, PreviousReceiveMessageNumber + 1);
                 };
                 PreviousReceiveMessageNumber = ReceiveMessageNumber;
             };
