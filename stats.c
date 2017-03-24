@@ -1,4 +1,5 @@
 #include "hs_serial.h"
+#define MAX_EVENTS 1024
 
 char * EventType[] = {
   "NO_CLOCK",
@@ -9,41 +10,47 @@ char * EventType[] = {
   "TIMEOUT",
   "OVERRUNS "
 };
+#define NUM_EVENTS sizeof(EventType) / sizeof(*EventType)
 
 static struct timespec StartTime;
-static struct Events {
-    unsigned Event;
-    struct timespec EventTime;
-} Event[1024];
-static unsigned EventNum = 0, LastEvent = 0;
+static double Event[MAX_EVENTS][NUM_EVENTS];
+
+static signed EventNum = -1;
 
 void StartTimer(void) {
     if(clock_gettime(CLOCK_REALTIME, &StartTime) != 0) {
         StartTime.tv_nsec = 0;
         StartTime.tv_sec = 0;
     };
+    if(++EventNum == MAX_EVENTS) {
+        printf("Statistics Collected\n");
+    } else if(EventNum > MAX_EVENTS) --EventNum;
 }
 
 void TimeEvent(char TheEvent) {
-    struct timespec EventTime;
+    struct timespec Now;
 
-    if(clock_gettime(CLOCK_REALTIME, &EventTime) != 0) {
-        EventTime.tv_nsec = 0;
-        EventTime.tv_sec = 0;
-        TheEvent = NO_CLOCK;
+    if(EventNum < MAX_EVENTS) {
+        if(clock_gettime(CLOCK_REALTIME, &Now) != 0) {
+            Now.tv_nsec = 0;
+            Now.tv_sec = 0;
+            TheEvent = NO_CLOCK;
+        };
+        Event[EventNum][TheEvent] = (Now.tv_sec - StartTime.tv_sec) *1000 + (Now.tv_nsec - StartTime.tv_nsec) / (double)1e6;
     };
-    Event[EventNum].Event = TheEvent;
-    Event[EventNum].EventTime.tv_sec = EventTime.tv_sec - StartTime.tv_sec;
-    Event[EventNum].EventTime.tv_nsec = EventTime.tv_nsec - StartTime.tv_nsec;
-    if(EventNum > LastEvent) LastEvent = EventNum;
-    if(++EventNum >= 1024) EventNum = 0;
 }
 
 void PrintEvents(void) {
-    unsigned i;
+    unsigned i, j;
 
-    for(i = 0; i <= LastEvent; i++) {
-        printf("%i %s %lu.%06lu\n", i, EventType[Event[i].Event], Event[i].EventTime.tv_sec, Event[i].EventTime.tv_nsec / 1000);
+    printf("Event ");
+    for(i = 0; i < NUM_EVENTS; i++) printf("%s ", EventType[i]);
+    printf("\n");
+    for(i = 0; i < EventNum; i++) {
+        printf("%i ", i);
+        for(j = 0; j < NUM_EVENTS; j++) {
+            printf("%8.3f ", Event[i][j]);
+        };
+        printf("\n");
     }
-
 }
