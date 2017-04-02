@@ -1,6 +1,7 @@
 #include "hs_serial.h"
 
 #define handle_error(msg) do { perror(msg); exit(EXIT_FAILURE); } while (0)
+#define USAGE "Usage: %s [-b nnnn] [-d] [-e] [-f] [-n] [-t nnnn] [-s]\n"
 
 int DebugFlag = 0;
 long msecs = 15;
@@ -51,7 +52,7 @@ int main(int argc, char** argv)
                 printf("set timer to %i ms\n", msecs);
                 break;
             case '?':
-                printf("Usage: %s [-d] [-e] [-n] [-t nnnn] [-s]\n", argv[0]);
+                printf(USAGE, argv[0]);
                 printf("  -b nnnn : set buffer size (default = 1024)\n");
                 printf("  -d      : Print debug messages to screen, may require -t 1000 on slow terminals\n");
                 printf("  -e      : Switch to parity even\n");
@@ -66,12 +67,12 @@ int main(int argc, char** argv)
                 printf("Print statistcs when done\n");
                 break;
             default:
-                fprintf(stderr, "Usage: %s [-d] [-e] [-n] [-t nnnn] [-s]\n", argv[0]);
+                fprintf(stderr, USAGE, argv[0]);
                 exit(EXIT_FAILURE);
         }
     }
     if (msecs == -1) {
-        fprintf(stderr, "Usage: %s [-d] [-e] [-n] [-t nnnn] [-s]\n", argv[0]);
+        fprintf(stderr, USAGE, argv[0]);
         exit(EXIT_FAILURE);
     }
     atexit(exitmode);
