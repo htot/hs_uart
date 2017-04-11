@@ -1,4 +1,5 @@
 #include "hs_serial.h"
+#include <syslog.h>
 
 int gpio_values[NUMBER_OF_GPIO];
 mraa_gpio_context gpio_contexts[NUMBER_OF_GPIO];
@@ -26,4 +27,3 @@ void init_gpio(){
         
     
 }
-

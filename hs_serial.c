@@ -13,7 +13,7 @@ set_interface_attribs (int fd, int speed, tcflag_t parity, int disableFlowContro
         memset (&tty, 0, sizeof tty);
         if (tcgetattr (fd, &tty) != 0)
         {
-                printf ("error %d from tcgetattr", errno);
+                handle_error("error from tcgetattr");
                 return -1;
         }
 
@@ -53,7 +53,7 @@ set_interface_attribs (int fd, int speed, tcflag_t parity, int disableFlowContro
 //          mraa_uart_set_flowcontrol()
         if (tcsetattr (fd, TCSANOW, &tty) != 0)
         {
-                printf ("error %d from tcsetattr", errno);
+                handle_error("error from tcsetattr");
                 return -1;
         }
         return 0;
@@ -67,7 +67,7 @@ set_blocking (int fd, int should_block)
         memset (&tty, 0, sizeof tty);
         if (tcgetattr (fd, &tty) != 0)
         {
-                printf ("error %d from tggetattr", errno);
+                handle_error("error from tggetattr");
                 return;
         }
 
@@ -75,5 +75,5 @@ set_blocking (int fd, int should_block)
         tty.c_cc[VTIME] = 0;            // 0.5 seconds read timeout
 
         if (tcsetattr (fd, TCSANOW, &tty) != 0)
-                printf ("error %d setting term attributes", errno);
+                handle_error("error setting term attributes");
 }

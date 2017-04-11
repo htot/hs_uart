@@ -25,7 +25,7 @@ int32_t base_reader(const mraa_uart_context uart, unsigned char * buffer, uint32
             return -1; // if we get no clock abort for now and retry later
         };
         if ((k = mraa_uart_read(uart, readbuffer, k)) == -1) {
-            if (DebugFlag) printf("Reading the buffer did not succeed\n");
+            if (DebugFlag) fprintf(stderr, "Reading the buffer did not succeed\n");
             return -1;
         };
 
@@ -51,7 +51,7 @@ int32_t base_reader(const mraa_uart_context uart, unsigned char * buffer, uint32
                         bbpos = 0;
                     } else if(readbuffer[i] != 0xFF) {
                         // we found something else, wait for new SOM
-                        if (DebugFlag) printf("Unexpected char while waiting for STX\n");
+                        if (DebugFlag) fprintf(stderr, "Unexpected char while waiting for STX\n");
                         state = WAIT_SOM;
                     };
                     break;

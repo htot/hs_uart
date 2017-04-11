@@ -35,7 +35,7 @@
 #define MISSED   4
 #define TIMEOUT  5
 #define OVERRUNS 6
-
+#define handle_error(msg) do { perror(msg); exit(EXIT_FAILURE); } while (0)
 
 typedef struct _wtf mraa_adv_func_t;
 
@@ -73,3 +73,4 @@ void StartTimer(void);
 void TimeEvent(char Event);
 void PrintEvents(void);
 void exitmode(void);
+void SignalEventsDone(void);

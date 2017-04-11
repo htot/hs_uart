@@ -16,6 +16,7 @@ static struct timespec StartTime;
 static double Event[MAX_EVENTS][NUM_EVENTS];
 
 static signed EventNum = -1;
+static signed Done = 0;
 
 void StartTimer(void) {
     if(clock_gettime(CLOCK_REALTIME, &StartTime) != 0) {
@@ -23,8 +24,15 @@ void StartTimer(void) {
         StartTime.tv_sec = 0;
     };
     if(++EventNum == MAX_EVENTS) {
-        printf("Statistics Collected\n");
+        Done = 1;
     } else if(EventNum > MAX_EVENTS) --EventNum;
+}
+
+void SignalEventsDone(void) {
+    if(Done == 1) {
+        fprintf(stderr, "Statistics Collected\n");
+        Done = 0;
+      }
 }
 
 void TimeEvent(char TheEvent) {

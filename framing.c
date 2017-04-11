@@ -39,7 +39,7 @@ int UnframeReceiveBuffer(char * DataBuffer, uint32_t * MessageNumber, const char
 
     // First we decode the ReceiveBuffer
     if((Len = base64_decode(tempBuffer, ReceiveBuffer, n)) < 3 * sizeof(uint32_t)) {
-        if (DebugFlag) printf("The decoded message contains to few byte to hold message num, size and crc\n");
+        if (DebugFlag) fprintf(stderr, "The decoded message contains to few byte to hold message num, size and crc\n");
         return -1; // must have at least message num, size and crc, discard the whole frame
     };
 
@@ -48,7 +48,7 @@ int UnframeReceiveBuffer(char * DataBuffer, uint32_t * MessageNumber, const char
     *MessageNumber = le32toh(*p_uint32);        // from little endian (LE)
     Len -= 3 * sizeof(uint32_t);                // data length not including message num, size and crc
     if(Len != (SizeField = le32toh(*(p_uint32 + 1)))) {
-        if (DebugFlag) printf("The data in the decoded message contains %i bytes, the message size field says %i\n", Len, SizeField);
+        if (DebugFlag) fprintf(stderr, "The data in the decoded message contains %i bytes, the message size field says %i\n", Len, SizeField);
         TimeEvent(OVERRUNS);
         return -1;  // we lost data from the frame, so discard the whole frame
     };
@@ -60,7 +60,7 @@ int UnframeReceiveBuffer(char * DataBuffer, uint32_t * MessageNumber, const char
     CRC32C = crc32cIntelC (crc32cInit(), tempBuffer, Len + 3 * sizeof(uint32_t));
     CRC32C = crc32cFinish(CRC32C);
     if(CRC32C != R_CRC32C) {
-        if (DebugFlag) printf("The CRC in the decoded message does not match the calculted CRC\n");
+        if (DebugFlag) fprintf(stderr, "The CRC in the decoded message does not match the calculted CRC\n");
         return -1;  // There is a CRC mismtach, so discard the whole frame
     };
 

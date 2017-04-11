@@ -1,6 +1,5 @@
 #include "hs_serial.h"
 
-#define handle_error(msg) do { perror(msg); exit(EXIT_FAILURE); } while (0)
 #define USAGE "Usage: %s [-b nnnn] [-d] [-e] [-f] [-n] [-t nnnn] [-s]\n"
 
 int DebugFlag = 0;
@@ -28,28 +27,28 @@ int main(int argc, char** argv)
           case 'b':
               BufferSize = -1;
               BufferSize = atoi(optarg);
-              printf("set message size to %i\n", BufferSize);
+              fprintf(stderr, "set message size to %i\n", BufferSize);
               break;
           case 'd':
               DebugFlag = 1;
-              printf("Debug on\n");
+              fprintf(stderr, "Debug on\n");
               break;
             case 'e':
                 parity = PARENB;
-                printf("Parity set to even\n");
+                fprintf(stderr, "Parity set to even\n");
                 break;
             case 'f':
                 FlowControl = 1;
-                printf("RTS/CTS flow control OFF\n");
+                fprintf(stderr, "RTS/CTS flow control OFF\n");
             break;
             case 'n':
                 parity = 0;
-                printf("Parity set to none\n");
+                fprintf(stderr, "Parity set to none\n");
                 break;
             case 't':
                 msecs=-1;
                 msecs = atoi(optarg);
-                printf("set timer to %i ms\n", msecs);
+                fprintf(stderr, "set timer to %i ms\n", msecs);
                 break;
             case '?':
                 printf(USAGE, argv[0]);
@@ -64,7 +63,7 @@ int main(int argc, char** argv)
                 return;
             case 's':
                 stats = 1;
-                printf("Print statistcs when done\n");
+                fprintf(stderr, "Print statistcs when done\n");
                 break;
             default:
                 fprintf(stderr, USAGE, argv[0]);
@@ -82,7 +81,7 @@ int main(int argc, char** argv)
     for(i=0;i<DATA_BUFFER;i++){
         textbuffer[i] = (char)i;
     };
-    if (DebugFlag) printf("frame size is %i\n", FrameTransmitBuffer(writebuffer, MessageNumber, textbuffer, BufferSize));
+    if (DebugFlag) fprintf(stderr, "frame size is %i\n", FrameTransmitBuffer(writebuffer, MessageNumber, textbuffer, BufferSize));
 
     mraa_init(); //initialize mraa
     init_gpio(); // initialize gpio pins
@@ -124,7 +123,7 @@ int main(int argc, char** argv)
     if(UartFd > MaxFd) MaxFd = UartFd;
 
     if(detect_rt()) {
-        printf("preempt_rt detected\n");
+        fprintf(stderr, "preempt_rt detected\n");
         set_rt();                                             // on preempt_rt we need to set priority and lock memory
     };
 
@@ -141,6 +140,7 @@ int main(int argc, char** argv)
             toggle_gpio_value(0);
             MessageNumber++;
             StartTimer();
+            if(stats == 1) SignalEventsDone();
             TransmitSize = FrameTransmitBuffer(writebuffer, MessageNumber, textbuffer, BufferSize);
             if(mraa_uart_write(uart, writebuffer, TransmitSize) != TransmitSize) handle_error("mraa_uart_write");; //write data into the uart buffer non blocking
             TimeEvent(TRANSMIT);
@@ -151,7 +151,7 @@ int main(int argc, char** argv)
             if(base_reader(uart, readbuffer, &ReceiveMessageNumber) >= 0) {
                 if(ReceiveMessageNumber != PreviousReceiveMessageNumber + 1) {
                     TimeEvent(MISSED);
-                    if (DebugFlag) printf("Received message %i expected %i\n", ReceiveMessageNumber, PreviousReceiveMessageNumber + 1);
+                    if (DebugFlag) fprintf(stderr, "Received message %i expected %i\n", ReceiveMessageNumber, PreviousReceiveMessageNumber + 1);
                 };
                 PreviousReceiveMessageNumber = ReceiveMessageNumber;
             };
