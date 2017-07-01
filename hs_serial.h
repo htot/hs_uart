@@ -1,6 +1,9 @@
+#define _GNU_SOURCE 1
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
+#include <ctype.h>
+#include <stdbool.h>
 #include <termios.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -8,6 +11,7 @@
 #include <mraa.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#include <sys/timerfd.h>
 #include "crc32c.h"
 #include "crc32intelc.h"
 #include <endian.h>
@@ -66,7 +70,7 @@ int getNumberOfAvailableBytes(int fd);
 int set_interface_attribs (int fd, int speed, tcflag_t parity, int disableFlowControl);
 void set_blocking (int fd, int should_block);
 int detect_rt(void);
-int detect_rt(void);
+void set_rt(void);
 int FrameTransmitBuffer(char * TransmitBuffer, const uint32_t MessageNumber, const char * DataBuffer, const uint32_t n);
 int UnframeReceiveBuffer(char * DataBuffer, uint32_t * MessageNumber, const char * ReceiveBuffer, const uint32_t n);
 void StartTimer(void);
