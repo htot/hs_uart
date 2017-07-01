@@ -60,7 +60,7 @@ int main(int argc, char** argv)
                 printf("  -t nnnn : msec between transmits\n");
                 printf("  -s      : Print statistcs when done\n");
                 printf("\nPress any key to terminate\n");
-                return;
+                exit(0);
             case 's':
                 stats = 1;
                 fprintf(stderr, "Print statistcs when done\n");
