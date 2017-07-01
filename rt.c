@@ -1,11 +1,9 @@
 #include "hs_serial.h"
-#include <string.h>
-#include <stdio.h>
 #include <sys/utsname.h>
 #include <sched.h>
 #include <sys/mman.h>
 
-#define MY_PRIORITY (49) /* we use 49 as the PRREMPT_RT use 50
+#define MY_PRIORITY (49) /* we use 49 as the PREEMPT_RT use 50
                             as the priority of kernel tasklets
                             and interrupt handler by default */
 
@@ -18,18 +16,18 @@
 
 int detect_rt(void) {
     struct utsname u;
-    int crit1, crit2 = 0;
+    int crit = false;
     FILE *fd;
 
     uname(&u);
-    crit1 = strcasestr (u.version, "PREEMPT RT");
+    if(strcasestr(u.version, "PREEMPT RT") == NULL) return false; /* uname contains PREEMPT RT */
 
-    if ((fd = fopen("/sys/kernel/realtime","r")) != NULL) {
+    if ((fd = fopen("/sys/kernel/realtime","r")) != NULL) { /* /sys/kernel/realtime exists */
         int flag;
-        crit2 = ((fscanf(fd, "%d", &flag) == 1) && (flag == 1));
+        crit = ((fscanf(fd, "%d", &flag) == 1) && (flag == 1)); /* and return 1 */
         fclose(fd);
     }
-    return (crit1 && crit2);
+    return (crit);
 }
 
 static void stack_prefault(void) {
