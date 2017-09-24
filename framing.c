@@ -2,11 +2,12 @@
 
 extern int DebugFlag;
 
-// TransmitBuffer contains the whole frame, PREAMBLES, STX, encoded (MSG#, Size, Data, CRC), ETC
-int FrameTransmitBuffer(char * TransmitBuffer, const uint32_t MessageNumber, const char * DataBuffer, const uint32_t n) {
+// TransmitBuffer contains the whole frame, PREAMBLES, STX, encoded (MSG#, Size, Data, CRC), ETX
+int32_t FrameTransmitBuffer(char * TransmitBuffer, const uint32_t MessageNumber, const char * DataBuffer, const size_t n) {
     char tempBuffer[MAX_BUFFER];
     unsigned int pos = 0;
     uint32_t CRC32C, * p_uint32;
+    size_t OutLen;
 
     p_uint32 = (uint32_t *)tempBuffer;  
     *p_uint32 = htole32(MessageNumber);         // start with message number in little endian
@@ -25,7 +26,9 @@ int FrameTransmitBuffer(char * TransmitBuffer, const uint32_t MessageNumber, con
     TransmitBuffer[pos++] = 0xFF;               // prefix with 2 PREAMBLES
     TransmitBuffer[pos++] = 0xFF;
     TransmitBuffer[pos++] = 0x02;               // and STX
-    pos += base64_encode(&TransmitBuffer[pos], tempBuffer, n + 3 * sizeof(uint32_t));
+    // flags set to 0, autodetect on x86
+    base64_encode( tempBuffer, n + 3 * sizeof(uint32_t), &TransmitBuffer[pos], &OutLen, 0);
+    pos += OutLen;
     TransmitBuffer[pos++] = 0x03;               // postfix with ETX
 
     return pos;
@@ -33,12 +36,16 @@ int FrameTransmitBuffer(char * TransmitBuffer, const uint32_t MessageNumber, con
 
 
 // ReceiveBuffer contains all character in between STX and ETX encoded base64
-int UnframeReceiveBuffer(char * DataBuffer, uint32_t * MessageNumber, const char * ReceiveBuffer, const uint32_t n) {
+int32_t UnframeReceiveBuffer(char * DataBuffer, uint32_t * MessageNumber, const char * ReceiveBuffer, const size_t n) {
     char tempBuffer[MAX_BUFFER];
-    uint32_t * p_uint32, Len, CRC32C, R_CRC32C, SizeField;
+    uint32_t * p_uint32, CRC32C, R_CRC32C, SizeField;
+    size_t Len;
 
-    // First we decode the ReceiveBuffer
-    if((Len = base64_decode(tempBuffer, ReceiveBuffer, n)) < 3 * sizeof(uint32_t)) {
+    if(base64_decode(ReceiveBuffer, n, tempBuffer, &Len, 0) < 0) {
+        fprintf(stderr, "The selected codec is not available\n");
+        exit(EXIT_FAILURE);
+    };
+    if(Len < 3 * sizeof(uint32_t)) {
         if (DebugFlag) fprintf(stderr, "The decoded message contains to few byte to hold message num, size and crc\n");
         return -1; // must have at least message num, size and crc, discard the whole frame
     };
@@ -48,7 +55,7 @@ int UnframeReceiveBuffer(char * DataBuffer, uint32_t * MessageNumber, const char
     *MessageNumber = le32toh(*p_uint32);        // from little endian (LE)
     Len -= 3 * sizeof(uint32_t);                // data length not including message num, size and crc
     if(Len != (SizeField = le32toh(*(p_uint32 + 1)))) {
-        if (DebugFlag) fprintf(stderr, "The data in the decoded message contains %i bytes, the message size field says %i\n", Len, SizeField);
+        if (DebugFlag) fprintf(stderr, "The data in the decoded message contains %i bytes, the message size field says %i\n", (int)Len, SizeField);
         TimeEvent(OVERRUNS);
         return -1;  // we lost data from the frame, so discard the whole frame
     };
@@ -65,6 +72,6 @@ int UnframeReceiveBuffer(char * DataBuffer, uint32_t * MessageNumber, const char
     };
 
     // Everthing matches, so copy the data out
-    memcpy(DataBuffer, tempBuffer, Len);
+    memcpy(DataBuffer, tempBuffer + 2 * sizeof(uint32_t), Len);
     return Len;
 }

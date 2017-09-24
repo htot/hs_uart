@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <mraa.h>
+
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/timerfd.h>
@@ -19,7 +19,7 @@
 // FT need to link with librt (-lrt)
 #include <time.h>
 
-#include "encoding.h"
+#include "base64/include/libbase64.h"
 
 #define WAIT_SOM 0
 #define WAIT_SOM_1 1
@@ -57,22 +57,21 @@ struct _uart {
 
 
 int main(int argc, char** argv);
-int32_t base_reader(const mraa_uart_context uart, unsigned char * buffer, uint32_t *MessageNumber);
+int Scan_Frame(const char * InBuffer, const size_t InLen, unsigned char * OutBuffer, size_t * OutLen, uint32_t *MessageNumber);
 void changemode(int dir);
 int kbhit (void);
 void init_gpio();
 void toggle_gpio_value(int pin);
 void set_gpio_value(int pin, int value);
 int gpio_values[NUMBER_OF_GPIO];
-mraa_result_t mraa_uart_set_non_blocking(mraa_uart_context dev, mraa_boolean_t nonblock);
 void dump_buffer(unsigned n, const unsigned char* buf);
 int getNumberOfAvailableBytes(int fd);
 int set_interface_attribs (int fd, int speed, tcflag_t parity, int disableFlowControl);
 void set_blocking (int fd, int should_block);
 int detect_rt(void);
 void set_rt(void);
-int FrameTransmitBuffer(char * TransmitBuffer, const uint32_t MessageNumber, const char * DataBuffer, const uint32_t n);
-int UnframeReceiveBuffer(char * DataBuffer, uint32_t * MessageNumber, const char * ReceiveBuffer, const uint32_t n);
+int32_t FrameTransmitBuffer(char * TransmitBuffer, const uint32_t MessageNumber, const char * DataBuffer, const size_t n);
+int32_t UnframeReceiveBuffer(char * DataBuffer, uint32_t * MessageNumber, const char * ReceiveBuffer, const size_t n);
 void StartTimer(void);
 void TimeEvent(char Event);
 void PrintEvents(void);
