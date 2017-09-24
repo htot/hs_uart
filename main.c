@@ -1,4 +1,6 @@
 #include "hs_serial.h"
+#include <mraa.h>
+mraa_result_t mraa_uart_set_non_blocking(mraa_uart_context dev, mraa_boolean_t nonblock);
 
 #define USAGE "Usage: %s [-b nnnn] [-d] [-e] [-f] [-n] [-t nnnn] [-s]\n"
 
@@ -8,13 +10,13 @@ long msecs = 15;
 
 int main(int argc, char** argv)
 {
-    int c, i, j, stats=0, written, numofbytes, n, UartFd, TimerFd, KbHit, MaxFd, FlowControl = 0;
-    int BufferSize = 1024;
+    int k, c, i, j, stats=0, written, numofbytes, n, UartFd, TimerFd, KbHit, MaxFd, FlowControl = 0;
+    int BufferSize = 1024, DecodeSize;
     int TransmitSize, MessageNumber = 0;
     int ReceiveMessageNumber, PreviousReceiveMessageNumber = 0;
     unsigned char writebuffer[MAX_BUFFER];
     unsigned char textbuffer[DATA_BUFFER];
-    unsigned char readbuffer[3072];
+    unsigned char decodebuffer[3072], readbuffer[3072];
     struct timespec Tick;
     unsigned long TimeNow, TimeLast, TimePassed;
     struct itimerspec TimerSettings;
@@ -148,11 +150,17 @@ int main(int argc, char** argv)
             FD_SET(TimerFd, &active_rfds);
         };
         if(FD_ISSET(UartFd, &read_rfds)) {                         // data is in the Uart
-            if(base_reader(uart, readbuffer, &ReceiveMessageNumber) >= 0) {
+//            if ((k = getNumberOfAvailableBytes(uart->fd)) > sizeof(readbuffer)) k = sizeof(readbuffer);
+            if ((k = mraa_uart_read(uart, readbuffer, sizeof(readbuffer))) == -1) {
+                if (DebugFlag) fprintf(stderr, "Reading the buffer did not succeed\n");
+                return -1;
+            };
+            while(Scan_Frame(readbuffer, k, decodebuffer, &DecodeSize, &ReceiveMessageNumber) >= 0) {
+                k = 0;
                 if(ReceiveMessageNumber != PreviousReceiveMessageNumber + 1) {
                     TimeEvent(MISSED);
                     if (DebugFlag) fprintf(stderr, "Received message %i expected %i\n", ReceiveMessageNumber, PreviousReceiveMessageNumber + 1);
-                };
+                }
                 PreviousReceiveMessageNumber = ReceiveMessageNumber;
             };
             FD_SET(UartFd, &active_rfds);
