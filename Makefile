@@ -6,7 +6,10 @@ CFLAGS+= -msse4.2 -mpclmul
 
 all: base64 unittest hs_serial
 
-hs_serial: main.o hs_serial.o dumpbuffer.o scan_frame.o gpio.o keyboardhit.o crc32intelc.o crc32inteltable.o rt.o framing.o stats.o
+deploy:
+	scp hs_serial root@edison:
+
+hs_serial: main.o dumpbuffer.o scan_frame.o gpio.o keyboardhit.o crc32intelc.o crc32inteltable.o rt.o framing.o stats.o
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ base64/lib/libbase64.o -lmraa -lrt 	
 
 unittest: unittest.o scan_frame.o crc32intelc.o crc32inteltable.o stats.o framing.o 

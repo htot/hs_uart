@@ -40,7 +40,7 @@ int main(int argc, char** argv)
                 break;
             case 'f':
                 FlowControl = 1;
-                fprintf(stderr, "RTS/CTS flow control OFF\n");
+                fprintf(stderr, "RTS/CTS flow control ON\n");
             break;
             case 'n':
                 parity = 0;
@@ -84,24 +84,39 @@ int main(int argc, char** argv)
     };
     if (DebugFlag) fprintf(stderr, "frame size is %i\n", (int)FrameTransmitBuffer(writebuffer, MessageNumber, textbuffer, BufferSize));
 
-    mraa_init(); //initialize mraa
+    if(mraa_init() != MRAA_SUCCESS) {
+        fprintf(stderr, "MRAA failed to initialize\n");
+        return EXIT_FAILURE;
+    }
+
     init_gpio(); // initialize gpio pins
+
     mraa_uart_context uart;
     uart = mraa_uart_init(0);
-    
+    if (uart == NULL) {
+        fprintf(stderr, "UART failed to setup\n");
+        return EXIT_FAILURE;
+    }
+
     struct _uart * u = uart;
     UartFd = u->fd;
-  // B1000000 
-  // B1152000
-  // B1500000
-  // B2000000
-  // B2500000
-  // B3000000
-  // B3500000
+  // valid B1000000, B1152000, B1500000, B2000000, B2500000, B3000000, B3500000
   // B4000000 crashes edison!
 
-    set_interface_attribs(UartFd, B2000000, parity , FlowControl);  //set serial port to 8 bits, 2Mb/s, parity ODD, 1 stop bit
-    set_blocking(UartFd, 0);                                        //set serial port non-blocking
+    mraa_uart_set_baudrate(uart, 2000000);
+    switch(parity) {
+    case 0 :
+        mraa_uart_set_mode(uart, 8, MRAA_UART_PARITY_NONE, 1);
+        break;
+    case (PARENB | PARODD):
+        mraa_uart_set_mode(uart, 8, MRAA_UART_PARITY_ODD, 1);
+        break;
+    case PARENB :
+        mraa_uart_set_mode(uart, 8, MRAA_UART_PARITY_EVEN, 1);
+        break;
+    }
+    mraa_uart_set_flowcontrol(uart, 0, FlowControl);
+    mraa_uart_set_non_blocking(uart, 1);
     mraa_uart_flush(uart);
 
     // Create a CLOCK_REALTIME relative timer with initial expiration 1 sec. and interval 15msec. */
@@ -149,7 +164,6 @@ int main(int argc, char** argv)
             FD_SET(TimerFd, &active_rfds);
         };
         if(FD_ISSET(UartFd, &read_rfds)) {                         // data is in the Uart
-            for(k = 0; k < sizeof(readbuffer); k++) readbuffer[k] = 0;
             if ((k = mraa_uart_read(uart, (char *)readbuffer, sizeof(readbuffer))) == -1) {
                 if (DebugFlag) fprintf(stderr, "Reading the buffer did not succeed\n");
                 return -1;
