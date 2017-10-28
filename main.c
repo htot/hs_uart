@@ -2,7 +2,7 @@
 #include <mraa.h>
 mraa_result_t mraa_uart_set_non_blocking(mraa_uart_context dev, mraa_boolean_t nonblock);
 
-#define USAGE "Usage: %s [-b nnnn] [-d] [-e] [-f] [-n] [-t nnnn] [-s]\n"
+#define USAGE "Usage: %s [-b nnnn] [-d] [-e] [-f] [-n] [-t nnnn] [-s] [-r nnnn]\n"
 
 int DebugFlag = 0;
 long msecs = 15;
@@ -10,7 +10,7 @@ long msecs = 15;
 
 int main(int argc, char** argv)
 {
-    int c, i, k, stats=0, UartFd, TimerFd, KbHit, MaxFd, FlowControl = 0;
+    int c, i, k, stats=0, UartFd, TimerFd, KbHit, MaxFd, FlowControl = 0, BaudRate = 2000000;
     int BufferSize = 1024;
     size_t DecodeSize;
     int TransmitSize;
@@ -23,11 +23,15 @@ int main(int argc, char** argv)
     fd_set active_rfds, read_rfds;
     tcflag_t parity = (PARENB | PARODD);
 
-     while((c = getopt (argc, argv, "b:defn?t:s")) != -1) {
+     while((c = getopt (argc, argv, "b:defn?t:sr:")) != -1) {
         switch (c) {
           case 'b':
               BufferSize = -1;
               BufferSize = atoi(optarg);
+              if (BufferSize == -1) {
+                  fprintf(stderr, USAGE, argv[0]);
+                  exit(EXIT_FAILURE);
+              }
               fprintf(stderr, "set message size to %i\n", (int)BufferSize);
               break;
           case 'd':
@@ -49,6 +53,10 @@ int main(int argc, char** argv)
             case 't':
                 msecs=-1;
                 msecs = atoi(optarg);
+                if (msecs == -1) {
+                    fprintf(stderr, USAGE, argv[0]);
+                    exit(EXIT_FAILURE);
+                }
                 fprintf(stderr, "set timer to %i ms\n", (int)msecs);
                 break;
             case '?':
@@ -59,6 +67,7 @@ int main(int argc, char** argv)
                 printf("  -f      : Turn off RTS/CTS flow control\n");
                 printf("  -n      : Switch to parity none\n");
                 printf("  -t nnnn : msec between transmits\n");
+                printf("  -r nnnn : Set buad rate\n");
                 printf("  -s      : Print statistcs when done\n");
                 printf("\nPress any key to terminate\n");
                 exit(0);
@@ -66,15 +75,22 @@ int main(int argc, char** argv)
                 stats = 1;
                 fprintf(stderr, "Print statistcs when done\n");
                 break;
+            case 'r':
+                BaudRate = -1;
+                BaudRate = atoi(optarg);
+                if (BaudRate == -1) {
+                    fprintf(stderr, USAGE, argv[0]);
+                    exit(EXIT_FAILURE);
+                }
+                fprintf(stderr, "Set buad rate to %i\n", (int)BaudRate);
+            break;
+
             default:
                 fprintf(stderr, USAGE, argv[0]);
                 exit(EXIT_FAILURE);
         }
     }
-    if (msecs == -1) {
-        fprintf(stderr, USAGE, argv[0]);
-        exit(EXIT_FAILURE);
-    }
+
     atexit(exitmode);
     changemode(1); //configure keyboard to not wait for enter
      
@@ -103,7 +119,7 @@ int main(int argc, char** argv)
   // valid B1000000, B1152000, B1500000, B2000000, B2500000, B3000000, B3500000
   // B4000000 crashes edison!
 
-    mraa_uart_set_baudrate(uart, 2000000);
+    mraa_uart_set_baudrate(uart, (unsigned int)BaudRate);
     switch(parity) {
     case 0 :
         mraa_uart_set_mode(uart, 8, MRAA_UART_PARITY_NONE, 1);
