@@ -57,7 +57,7 @@ struct _uart {
 
 
 int main(int argc, char** argv);
-int Scan_Frame(const char * InBuffer, const size_t InLen, unsigned char * OutBuffer, size_t * OutLen, uint32_t *MessageNumber);
+int32_t Scan_Frame(const unsigned char * InBuffer, const size_t InLen, unsigned char * OutBuffer, size_t * OutLen, uint32_t *MessageNumber);
 void changemode(int dir);
 int kbhit (void);
 void init_gpio();
@@ -70,8 +70,8 @@ int set_interface_attribs (int fd, int speed, tcflag_t parity, int disableFlowCo
 void set_blocking (int fd, int should_block);
 int detect_rt(void);
 void set_rt(void);
-int32_t FrameTransmitBuffer(char * TransmitBuffer, const uint32_t MessageNumber, const char * DataBuffer, const size_t n);
-int32_t UnframeReceiveBuffer(char * DataBuffer, uint32_t * MessageNumber, const char * ReceiveBuffer, const size_t n);
+size_t FrameTransmitBuffer(unsigned char * TransmitBuffer, const uint32_t MessageNumber, const unsigned char * DataBuffer, const size_t n);
+size_t UnframeReceiveBuffer(unsigned char * DataBuffer, uint32_t * MessageNumber, const unsigned char * ReceiveBuffer, const size_t n);
 void StartTimer(void);
 void TimeEvent(char Event);
 void PrintEvents(void);

@@ -10,15 +10,14 @@ long msecs = 15;
 
 int main(int argc, char** argv)
 {
-    int k, c, i, j, stats=0, written, numofbytes, n, UartFd, TimerFd, KbHit, MaxFd, FlowControl = 0;
-    int BufferSize = 1024, DecodeSize;
-    int TransmitSize, MessageNumber = 0;
-    int ReceiveMessageNumber, PreviousReceiveMessageNumber = 0;
+    int c, i, k, stats=0, UartFd, TimerFd, KbHit, MaxFd, FlowControl = 0;
+    int BufferSize = 1024;
+    size_t DecodeSize;
+    int TransmitSize;
+    uint32_t ReceiveMessageNumber, PreviousReceiveMessageNumber = 0, MessageNumber = 0;
     unsigned char writebuffer[MAX_BUFFER];
     unsigned char textbuffer[DATA_BUFFER];
     unsigned char decodebuffer[3072], readbuffer[3072];
-    struct timespec Tick;
-    unsigned long TimeNow, TimeLast, TimePassed;
     struct itimerspec TimerSettings;
     uint64_t TimerValue;
     fd_set active_rfds, read_rfds;
@@ -29,7 +28,7 @@ int main(int argc, char** argv)
           case 'b':
               BufferSize = -1;
               BufferSize = atoi(optarg);
-              fprintf(stderr, "set message size to %i\n", BufferSize);
+              fprintf(stderr, "set message size to %i\n", (int)BufferSize);
               break;
           case 'd':
               DebugFlag = 1;
@@ -50,7 +49,7 @@ int main(int argc, char** argv)
             case 't':
                 msecs=-1;
                 msecs = atoi(optarg);
-                fprintf(stderr, "set timer to %i ms\n", msecs);
+                fprintf(stderr, "set timer to %i ms\n", (int)msecs);
                 break;
             case '?':
                 printf(USAGE, argv[0]);
@@ -83,7 +82,7 @@ int main(int argc, char** argv)
     for(i=0;i<DATA_BUFFER;i++){
         textbuffer[i] = (char)i;
     };
-    if (DebugFlag) fprintf(stderr, "frame size is %i\n", FrameTransmitBuffer(writebuffer, MessageNumber, textbuffer, BufferSize));
+    if (DebugFlag) fprintf(stderr, "frame size is %i\n", (int)FrameTransmitBuffer(writebuffer, MessageNumber, textbuffer, BufferSize));
 
     mraa_init(); //initialize mraa
     init_gpio(); // initialize gpio pins
@@ -144,14 +143,14 @@ int main(int argc, char** argv)
             StartTimer();
             if(stats == 1) SignalEventsDone();
             TransmitSize = FrameTransmitBuffer(writebuffer, MessageNumber, textbuffer, BufferSize);
-            if(mraa_uart_write(uart, writebuffer, TransmitSize) != TransmitSize) handle_error("mraa_uart_write");; //write data into the uart buffer non blocking
+            if(mraa_uart_write(uart, (char *)writebuffer, TransmitSize) != TransmitSize) handle_error("mraa_uart_write");; //write data into the uart buffer non blocking
             TimeEvent(TRANSMIT);
             toggle_gpio_value(0);
             FD_SET(TimerFd, &active_rfds);
         };
         if(FD_ISSET(UartFd, &read_rfds)) {                         // data is in the Uart
-//            if ((k = getNumberOfAvailableBytes(uart->fd)) > sizeof(readbuffer)) k = sizeof(readbuffer);
-            if ((k = mraa_uart_read(uart, readbuffer, sizeof(readbuffer))) == -1) {
+            for(k = 0; k < sizeof(readbuffer); k++) readbuffer[k] = 0;
+            if ((k = mraa_uart_read(uart, (char *)readbuffer, sizeof(readbuffer))) == -1) {
                 if (DebugFlag) fprintf(stderr, "Reading the buffer did not succeed\n");
                 return -1;
             };
@@ -159,7 +158,7 @@ int main(int argc, char** argv)
                 k = 0;
                 if(ReceiveMessageNumber != PreviousReceiveMessageNumber + 1) {
                     TimeEvent(MISSED);
-                    if (DebugFlag) fprintf(stderr, "Received message %i expected %i\n", ReceiveMessageNumber, PreviousReceiveMessageNumber + 1);
+                    if (DebugFlag) fprintf(stderr, "Received message %i expected %i\n", (int)ReceiveMessageNumber, (int)PreviousReceiveMessageNumber + 1);
                 }
                 PreviousReceiveMessageNumber = ReceiveMessageNumber;
             };

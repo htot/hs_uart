@@ -44,7 +44,7 @@ void TimeEvent(char TheEvent) {
             Now.tv_sec = 0;
             TheEvent = NO_CLOCK;
         };
-        Event[EventNum][TheEvent] = (Now.tv_sec - StartTime.tv_sec) *1000 + (Now.tv_nsec - StartTime.tv_nsec) / (double)1e6;
+        Event[EventNum][(unsigned)TheEvent] = (Now.tv_sec - StartTime.tv_sec) *1000 + (Now.tv_nsec - StartTime.tv_nsec) / (double)1e6;
     };
 }
 
@@ -55,7 +55,7 @@ void PrintEvents(void) {
     for(i = 0; i < NUM_EVENTS; i++) printf("%s ", EventType[i]);
     printf("\n");
     for(i = 0; i < EventNum; i++) {
-        printf("%i ", i);
+        printf("%i ", (int)i);
         for(j = 0; j < NUM_EVENTS; j++) {
             printf("%8.3f ", Event[i][j]);
         };

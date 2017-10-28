@@ -15,7 +15,6 @@ void toggle_gpio_value(int pin) {
 }
 
 void init_gpio(){
-    int i;
 
         gpio_contexts[0] = mraa_gpio_init(7);   //claim pins
         mraa_gpio_use_mmaped(gpio_contexts[0], 1); //Enable using memory mapped io instead of sysfs
@@ -25,6 +24,5 @@ void init_gpio(){
         mraa_gpio_use_mmaped(gpio_contexts[1], 1); //Enable using memory mapped io instead of sysfs
         mraa_gpio_dir(gpio_contexts[1], MRAA_GPIO_OUT); //pin 2 = output
         set_gpio_value(1,0);                    //start at 0
-        
-    
+           
 }

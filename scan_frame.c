@@ -14,9 +14,9 @@ extern unsigned long msecs;
 // and LocalBuffer updated. More messages may be pending in LocalBuffer, so Scan_Frame should be
 // repeatedly called until nothing is found.
 // If nothing is found -1 is returned.
-int Scan_Frame(const char * InBuffer, const size_t InLen, unsigned char * OutBuffer, size_t * OutLen, uint32_t *MessageNumber)
+int32_t Scan_Frame(const unsigned char * InBuffer, const size_t InLen, unsigned char * OutBuffer, size_t * OutLen, uint32_t *MessageNumber)
 {
-        size_t i, j, NumBytes = -1;
+        size_t i, j;
         int32_t Received;
         int Found;
 
@@ -104,7 +104,7 @@ int Scan_Frame(const char * InBuffer, const size_t InLen, unsigned char * OutBuf
                                                 for(j = 0; j < LocalBufferTail; j++) LocalBuffer[j] = LocalBuffer[i + 1 + j];
                                                 state = WAIT_SOM;
                                                 LastPos = 0;
-                                                return(Found);
+                                                return Found;
                                         };
                                         // decode failed, continue
                                         state = WAIT_SOM;

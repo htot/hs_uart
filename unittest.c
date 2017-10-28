@@ -17,7 +17,7 @@ int main(int argc, char** argv)
     unsigned char textbuffer[DATA_BUFFER];
     unsigned char readbuffer[3072];
     unsigned char error[] = {0x00, 0xFF, 0x01};
-    size_t TransmitSize, BufferSize = 1024, ReadBytes, i, OutLen;
+    size_t TransmitSize, BufferSize = 1024, i, OutLen;
     int j;
     
     //fill textbuffer with random
@@ -139,13 +139,3 @@ int main(int argc, char** argv)
 
     printf("All tests passed!");
 }
-/*
-    printf("MessageNumber %i\n", (int)MessageNumber);
-    printf("TransmitSize %i\n", (int)TransmitSize);
-    for(i = 0; i < TransmitSize; i++) printf("%hhx ", writebuffer[i]);
-    printf("\n");
-    printf("MessageNumber %i\n", (int)MessageNumber);
-    printf("OutLen %i\n", (int)OutLen);
-    for(i = 0; i < OutLen; i++) printf("%hhx ", readbuffer[i]);
-    printf("\n");
-*/

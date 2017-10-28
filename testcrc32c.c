@@ -9,7 +9,6 @@ int main(int argc, char** argv)
 {
     unsigned char buffer[BUFFER_SIZE + 10], string[] = "1234567890";
     uint32_t CRC32C, * p_crc, R_CRC32C;
-    char * p_buf = buffer;
     
     CRC32C = crc32cIntelC (crc32cInit(), string, sizeof(string) - 1);
     CRC32C = crc32cFinish(CRC32C);
